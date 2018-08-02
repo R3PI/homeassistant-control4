@@ -19,6 +19,8 @@ from homeassistant.components.light import (
 
 from homeassistant.helpers import config_validation as cv
 
+DATA_CONTROL4 = 'control4'
+
 
 _LOGGER = logging.getLogger(__name__)
 DEPENDENCIES = ['control4']
@@ -58,28 +60,22 @@ def retry(method):
                 return None
             try:
                 return method(device, *args, **kwargs)
-            except (Exception, AttributeError), e:
+            except Exception as e:
                 _LOGGER.warning("Control4 connect error for device %s: %s", device.name, str(e))
     return wrapper_retry
 
 
-def setup_platform(hass, config, add_devices, discovery_info=None):
+async def async_setup_entry(hass, entry, async_add_devices):
     """Set up Control4 lights"""
-    lights = []
+    light = Control4Light(entry, hass.data[DATA_CONTROL4].control4)
 
-    for device_config in config[CONF_DEVICES].items():
-        device = device_config[CONF_NAME].deep_copy()
-
-        light = Control4Light(device)
-        lights.append(light)
-
-    add_devices(lights)
+    async_add_devices([light], True)
 
 
 class Control4Light(Light):
     """Representation of a Control4 Light"""
 
-    def __init__(self, device):
+    def __init__(self, device, switch):
         """Initialize the light"""
         self._name = device['name']
         self._c4id = device['c4id']
@@ -90,7 +86,7 @@ class Control4Light(Light):
         self._c4var_brightness = device['c4var_brightness']
         self._c4var_status = device['c4var_status']
 
-        self._switch = control4(self._c4id)
+        self._switch = switch
         self._state = False
         self._brightness = 0
 
@@ -148,4 +144,4 @@ class Control4Light(Light):
         if self._dimmable:
             self._brightness = float(self._switch.get(self._c4var_brightness)) * 2.55
 
-        self._state = bool(self._switch.get(self._c4var_state))
+        self._state = bool(self._switch.get(self._c4var_status))

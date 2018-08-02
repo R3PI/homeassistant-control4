@@ -9,24 +9,20 @@ import voluptuous as vol
 
 from homeassistant.helpers import config_validation as cv
 
-from .const import ( DOMAIN )
+from .const import DOMAIN
 
-CONF_HOST = 'host'
-CONF_PORT = 'port'
-CONF_PROTOCOL = 'protocol'
+CONF_URL = 'url'
 
 CONFIG_SCHEMA = vol.Schema({
     DOMAIN: vol.Schema({
-        vol.Required(CONF_HOST): cv.string,
-        vol.Required(CONF_PORT): cv.port,
-        vol.Optional(CONF_PROTOCOL, default='http'): cv.string
+        vol.Required(CONF_URL): cv.url
     })
 }, extra=vol.ALLOW_EXTRA)
 
 DATA_CONTROL4 = 'control4'
 DATA_CONTROL4_CONFIG = 'control4_config'
 
-REQUIREMENTS = ['python-control4===0.1.0']
+REQUIREMENTS = ['python-control4-lite===0.1.0']
 
 
 async def async_setup(hass, config):
@@ -35,9 +31,7 @@ async def async_setup(hass, config):
         return
 
     conf = config[DOMAIN]
-
-    hass.data[DATA_CONTROL4_CONFIG] = config
-
+    hass.data[DATA_CONTROL4_CONFIG] = conf
     return True
 
 
@@ -45,7 +39,7 @@ async def async_setup_entry(hass, entry):
     """Setup Control4 from a config entry"""
     from control4 import Control4
 
-    control4 = Control4(host=entry.data['host'], port=entry.data['port'], protocol=entry.data['protocol'])
+    control4 = Control4(url=entry.data['url'])
 
     conf = hass.data.get(DATA_CONTROL4_CONFIG, {})
 
@@ -54,9 +48,8 @@ async def async_setup_entry(hass, entry):
     if not await hass.async_add_job(hass.data[DATA_CONTROL4].initialize):
         return False
 
-    for component in 'climate', 'camera', 'sensor', 'binary_sensor':
-        hass.async_create_task(hass.config_entries.async_forward_entry_setup(entry, component))
-
+    # for component in 'light':
+    #    hass.async_create_task(hass.config_entries.async_forward_entry_setup(entry, component))
 
 
 class Control4Device:
@@ -65,10 +58,10 @@ class Control4Device:
     def __init__(self, hass, conf, control4):
         """Init Control4 Devices"""
         self.hass = hass
+        self.conf = conf
         self.control4 = control4
 
-
-    def initialize(self):
-        """Initialize Control4"""
-        return True
+    @property
+    def control4(self):
+        return self.control4
 
