@@ -65,6 +65,11 @@ def retry(method):
     return wrapper_retry
 
 
+async def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
+    """Moo"""
+    pass
+
+
 async def async_setup_entry(hass, entry, async_add_devices):
     """Set up Control4 lights"""
     light = Control4Light(entry, hass.data[DATA_CONTROL4].control4)
