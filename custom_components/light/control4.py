@@ -67,11 +67,14 @@ def retry(method):
 
 async def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
     """Moo"""
+    _LOGGER.debug( 'control4.light.async_setup_platform', config, discovery_info )
     pass
 
 
 async def async_setup_entry(hass, entry, async_add_devices):
     """Set up Control4 lights"""
+    _LOGGER.debug( 'control4.light.async_setup_entry', entry )
+
     light = Control4Light(entry, hass.data[DATA_CONTROL4].control4)
 
     async_add_devices([light], True)
@@ -125,13 +128,13 @@ class Control4Light(Light):
     @retry
     def set_state(self, brightness):
         """"Set the state of this light to the provided brightness."""
-        self._switch.set('SET_LEVEL', {'LEVEL': brightness(int(brightness / 2.55))})
+        self._switch.set_level(self._c4id, int(brightness / 2.55))
 
     @retry
     def turn_on(self, **kwargs):
         """Turn the light on"""
         brightness = kwargs.get(ATTR_BRIGHTNESS)
-        self._switch.set('ON')
+        self._switch.on(self._c4id)
         self._state = True
 
         if brightness is not None:
@@ -140,13 +143,13 @@ class Control4Light(Light):
     @retry
     def turn_off(self, **kwargs):
         """Turn the light off"""
-        self._switch.set('OFF')
+        self._switch.off(self._c4id)
         self._state = False
 
     @retry
     def update(self):
         """Synchronize internal state with the actual light state."""
         if self._dimmable:
-            self._brightness = float(self._switch.get(self._c4var_brightness)) * 2.55
+            self._brightness = float(self._switch.get(self._c4id, self._c4var_brightness)) * 2.55
 
-        self._state = bool(self._switch.get(self._c4var_status))
+        self._state = bool(self._switch.get(self._c4id, self._c4var_status))

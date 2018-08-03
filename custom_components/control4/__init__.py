@@ -5,11 +5,14 @@ For more details about this component, please refer to the documentation at
 https://github.com/r3pi/homeassistant-control4
 """
 
+import logging
 import voluptuous as vol
 
 from homeassistant.helpers import config_validation as cv
 
 from .const import DOMAIN
+
+_LOGGER = logging.getLogger(__name__)
 
 CONF_URL = 'url'
 
@@ -27,6 +30,9 @@ REQUIREMENTS = ['python-control4-lite===0.1.0']
 
 async def async_setup(hass, config):
     """Setup Control4 Controller"""
+
+    _LOGGER.debug( 'control4.control4.async_setup', config )
+
     if DOMAIN not in config:
         return
 
@@ -37,6 +43,8 @@ async def async_setup(hass, config):
 
 async def async_setup_entry(hass, entry):
     """Setup Control4 from a config entry"""
+    _LOGGER.debug( 'control4.control4.async_setup_entry', entry )
+
     from control4 import Control4
 
     control4 = Control4(url=entry.data['url'])
