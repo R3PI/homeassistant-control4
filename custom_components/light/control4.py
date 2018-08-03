@@ -67,13 +67,13 @@ def retry(method):
 
 async def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
     """Moo"""
-    _LOGGER.debug( 'control4.light.async_setup_platform', config, discovery_info )
+    _LOGGER.debug('control4.light.async_setup_platform', config, discovery_info)
     pass
 
 
 async def async_setup_entry(hass, entry, async_add_devices):
     """Set up Control4 lights"""
-    _LOGGER.debug( 'control4.light.async_setup_entry', entry )
+    _LOGGER.debug('control4.light.async_setup_entry', entry)
 
     light = Control4Light(entry, hass.data[DATA_CONTROL4].control4)
 
@@ -128,11 +128,14 @@ class Control4Light(Light):
     @retry
     def set_state(self, brightness):
         """"Set the state of this light to the provided brightness."""
+        _LOGGER.debug("control4.light.set_level", self._name, brightness)
         self._switch.set_level(self._c4id, int(brightness / 2.55))
 
     @retry
     def turn_on(self, **kwargs):
         """Turn the light on"""
+        _LOGGER.debug("control4.light.on", self._name)
+
         brightness = kwargs.get(ATTR_BRIGHTNESS)
         self._switch.on(self._c4id)
         self._state = True
@@ -143,12 +146,16 @@ class Control4Light(Light):
     @retry
     def turn_off(self, **kwargs):
         """Turn the light off"""
+        _LOGGER.debug("control4.light.off", self._name)
+
         self._switch.off(self._c4id)
         self._state = False
 
     @retry
     def update(self):
         """Synchronize internal state with the actual light state."""
+        _LOGGER.debug("control4.light.update", self._name)
+
         if self._dimmable:
             self._brightness = float(self._switch.get(self._c4id, self._c4var_brightness)) * 2.55
 
