@@ -31,34 +31,21 @@ REQUIREMENTS = ['python-control4-lite===0.1.0']
 async def async_setup(hass, config):
     """Setup Control4 Controller"""
 
-    _LOGGER.debug('control4.control4.async_setup: %s', str(config))
+    _LOGGER.debug('async_setup: %s', str(config))
 
     if DOMAIN not in config:
         return
 
-    conf = config[DOMAIN]
-    hass.data[DATA_CONTROL4_CONFIG] = conf
-    return True
-
-
-async def async_setup_entry(hass, entry):
-    """Setup Control4 from a config entry"""
-    _LOGGER.debug('control4.control4.async_setup_entry: %s', str(entry))
+    _LOGGER.debug('async_setup has config')
 
     from control4 import Control4
 
-    control4 = Control4(url=entry.data['url'])
-
-    conf = hass.data.get(DATA_CONTROL4_CONFIG, {})
-
+    conf = config[DOMAIN]
+    control4 = Control4(url=conf['url'])
+    hass.data[DATA_CONTROL4_CONFIG] = conf
     hass.data[DATA_CONTROL4] = Control4Device(hass, conf, control4)
 
-    if not await hass.async_add_job(hass.data[DATA_CONTROL4].initialize):
-        return False
-
-    # for component in 'light':
-    #    hass.async_create_task(hass.config_entries.async_forward_entry_setup(entry, component))
-
+    return True
 
 class Control4Device:
     """Structure Control4 functions for hass."""
