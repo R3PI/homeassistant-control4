@@ -33,14 +33,13 @@ CONF_C4VAR_STATUS = 'c4var_status'
 
 DEVICE_SCHEMA = vol.Schema({
     vol.Required(CONF_C4ID): cv.positive_int,
-    vol.Required(CONF_NAME): cv.string,
     vol.Optional(CONF_DESC, default=""): cv.string,
-    vol.Optional(CONF_LATITUDE): cv.latitude,
-    vol.Optional(CONF_LONGITUDE): cv.longitude,
+    vol.Optional(CONF_LATITUDE, default=0): cv.latitude,
+    vol.Optional(CONF_LONGITUDE, default=0): cv.longitude,
     vol.Optional(CONF_DIMMABLE, default=True): cv.boolean,
     vol.Optional(CONF_C4VAR_BRIGHTNESS, default=1001): cv.positive_int,
     vol.Optional(CONF_C4VAR_STATUS, default=1000): cv.positive_int,
-    vol.Optional(CONF_SCAN_INTERVAL): vol.All(vol.Coerce(int), vol.Range(min=1))
+    vol.Optional(CONF_SCAN_INTERVAL, default=10): vol.All(vol.Coerce(int), vol.Range(min=1))
 })
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
@@ -61,16 +60,16 @@ def retry(method):
             try:
                 return method(device, *args, **kwargs)
             except Exception as e:
-                _LOGGER.warning("Control4 connect error for device %s: %s", device.name, str(e))
+                _LOGGER.warning("Control4 connect error for device %s: %s", device._name, str(e))
     return wrapper_retry
 
 
 async def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
-    """Set up a Control4 light"""
+    """Set up Control4 lights"""
     _LOGGER.debug('async_setup_platform: %s, %s', str(config), str(discovery_info))
 
     switch = hass.data[DATA_CONTROL4].control4
-    lights = [Control4Light(device, switch) for device in config]
+    lights = [Control4Light(device_name, device, switch) for device_name, device in config[CONF_DEVICES].items()]
 
     async_add_devices(lights, True)
 
@@ -83,9 +82,10 @@ async def async_setup_entry(hass, entry, async_add_devices):
 class Control4Light(Light):
     """Representation of a Control4 Light"""
 
-    def __init__(self, device, switch):
+    def __init__(self, device_name, device, switch):
         """Initialize the light"""
-        self._name = device['name']
+        _LOGGER.debug('Init light: %s', str(device))
+        self._name = device_name
         self._c4id = device['c4id']
         self._desc = device['desc']
         self._latitude = device['latitude']
@@ -125,14 +125,14 @@ class Control4Light(Light):
         """We can read the actual state."""
         return False
 
-    @retry
-    def set_state(self, brightness):
+    # @retry
+    async def async_set_state(self, brightness):
         """"Set the state of this light to the provided brightness."""
         _LOGGER.debug("control4.light.set_level: %s, %d", self._name, brightness)
         self._switch.set_level(self._c4id, int(brightness / 2.55))
 
-    @retry
-    def turn_on(self, **kwargs):
+    # @retry
+    async def async_turn_on(self, **kwargs):
         """Turn the light on"""
         _LOGGER.debug("control4.light.on: %s", self._name)
 
@@ -143,16 +143,16 @@ class Control4Light(Light):
         if brightness is not None:
             self.set_state(brightness)
 
-    @retry
-    def turn_off(self, **kwargs):
+    # @retry
+    async def async_turn_off(self, **kwargs):
         """Turn the light off"""
         _LOGGER.debug("control4.light.off: %s", self._name)
 
         self._switch.off(self._c4id)
         self._state = False
 
-    @retry
-    def update(self):
+    # @retry
+    async def async_update(self):
         """Synchronize internal state with the actual light state."""
         _LOGGER.debug("control4.light.update: %s", self._name)
 
