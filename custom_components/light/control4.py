@@ -65,28 +65,19 @@ def retry(method):
     return wrapper_retry
 
 
-def setup_entry(hass, entry, add_devices):
-    """Moo"""
-    _LOGGER.debug('control4.light.setup_entry: %s', str(entry))
-    pass
-
-def setup_platform( hass, config, add_devices, discovery_info=None):
-    """Moo"""
-    _LOGGER.debug('control4.light.setup_platform: %s, %s', str(config), str(discovery_info))
-    pass
-
 async def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
-    """Moo"""
-    _LOGGER.debug('control4.light.async_setup_platform: %s, %s', str(config), str(discovery_info))
-    pass
+    """Set up a Control4 light"""
+    _LOGGER.debug('async_setup_platform: %s, %s', str(config), str(discovery_info))
+
+    switch = hass.data[DATA_CONTROL4].control4
+    lights = [Control4Light(device, switch) for device in config]
+
+    async_add_devices(lights, True)
+
 
 async def async_setup_entry(hass, entry, async_add_devices):
     """Set up Control4 lights"""
     _LOGGER.debug('control4.light.async_setup_entry: %s', str(entry))
-
-    light = Control4Light(entry, hass.data[DATA_CONTROL4].control4)
-
-    async_add_devices([light], True)
 
 
 class Control4Light(Light):
