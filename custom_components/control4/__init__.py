@@ -31,7 +31,7 @@ REQUIREMENTS = ['python-control4-lite===0.1.0']
 async def async_setup(hass, config):
     """Setup Control4 Controller"""
 
-    _LOGGER.debug( 'control4.control4.async_setup', config )
+    _LOGGER.debug('control4.control4.async_setup: %s', str(config))
 
     if DOMAIN not in config:
         return
@@ -43,7 +43,7 @@ async def async_setup(hass, config):
 
 async def async_setup_entry(hass, entry):
     """Setup Control4 from a config entry"""
-    _LOGGER.debug( 'control4.control4.async_setup_entry', entry )
+    _LOGGER.debug('control4.control4.async_setup_entry: %s', str(entry))
 
     from control4 import Control4
 
@@ -65,11 +65,10 @@ class Control4Device:
 
     def __init__(self, hass, conf, control4):
         """Init Control4 Devices"""
-        self.hass = hass
-        self.conf = conf
-        self.control4 = control4
+        self._hass = hass
+        self._conf = conf
+        self._control4 = control4
 
     @property
     def control4(self):
-        return self.control4
-
+        return self._control4
