@@ -65,11 +65,20 @@ def retry(method):
     return wrapper_retry
 
 
+def setup_entry(hass, entry, add_devices):
+    """Moo"""
+    _LOGGER.debug('control4.light.setup_entry: %s', str(entry))
+    pass
+
+def setup_platform( hass, config, add_devices, discovery_info=None):
+    """Moo"""
+    _LOGGER.debug('control4.light.setup_platform: %s, %s', str(config), str(discovery_info))
+    pass
+
 async def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
     """Moo"""
     _LOGGER.debug('control4.light.async_setup_platform: %s, %s', str(config), str(discovery_info))
     pass
-
 
 async def async_setup_entry(hass, entry, async_add_devices):
     """Set up Control4 lights"""
