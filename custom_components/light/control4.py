@@ -4,13 +4,10 @@ For more details about this platform, please refer to the documentation at
 https://github.com/r3pi/homeassistant-control4/custom_components/light/
 """
 import logging
-from functools import wraps
-import time
-
 import voluptuous as vol
 
 from homeassistant.const import (
-    CONF_LATITUDE, CONF_LONGITUDE, CONF_DEVICES, CONF_NAME, CONF_SCAN_INTERVAL
+    CONF_LATITUDE, CONF_LONGITUDE, CONF_DEVICES, CONF_SCAN_INTERVAL
 )
 
 from homeassistant.components.light import (
@@ -45,23 +42,6 @@ DEVICE_SCHEMA = vol.Schema({
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_DEVICES, default={}): {cv.string: DEVICE_SCHEMA}
 })
-
-
-def retry(method):
-    """Retry Control4 commands."""
-    @wraps(method)
-    def wrapper_retry(device, *args, **kwargs):
-        """Try send command and retry on error"""
-        initial = time.monotonic()
-
-        while True:
-            if time.monotonic() - initial >= 10:
-                return None
-            try:
-                return method(device, *args, **kwargs)
-            except Exception as e:
-                _LOGGER.warning("Control4 connect error for device %s: %s", device._name, str(e))
-    return wrapper_retry
 
 
 async def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
@@ -125,38 +105,34 @@ class Control4Light(Light):
         """We can read the actual state."""
         return False
 
-    # @retry
     async def async_set_state(self, brightness):
         """"Set the state of this light to the provided brightness."""
         _LOGGER.debug("control4.light.set_level: %s, %d", self._name, brightness)
-        self._switch.set_level(self._c4id, int(brightness / 2.55))
+        await self._switch.set_level(self._c4id, int(brightness / 2.55))
 
-    # @retry
     async def async_turn_on(self, **kwargs):
         """Turn the light on"""
         _LOGGER.debug("control4.light.on: %s", self._name)
 
         brightness = kwargs.get(ATTR_BRIGHTNESS)
-        self._switch.on(self._c4id)
+        await self._switch.on(self._c4id)
         self._state = True
 
         if brightness is not None:
-            self.set_state(brightness)
+            await self._switch.set_level(self._c4id, brightness)
 
-    # @retry
     async def async_turn_off(self, **kwargs):
         """Turn the light off"""
         _LOGGER.debug("control4.light.off: %s", self._name)
 
-        self._switch.off(self._c4id)
+        await self._switch.off(self._c4id)
         self._state = False
 
-    # @retry
     async def async_update(self):
         """Synchronize internal state with the actual light state."""
         _LOGGER.debug("control4.light.update: %s", self._name)
 
         if self._dimmable:
-            self._brightness = float(self._switch.get(self._c4id, self._c4var_brightness)) * 2.55
+            self._brightness = float(await self._switch.get(self._c4id, self._c4var_brightness)) * 2.55
 
-        self._state = bool(self._switch.get(self._c4id, self._c4var_status))
+        self._state = bool(await self._switch.get(self._c4id, self._c4var_status))
