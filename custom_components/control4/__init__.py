@@ -25,7 +25,7 @@ CONFIG_SCHEMA = vol.Schema({
 DATA_CONTROL4 = 'control4'
 DATA_CONTROL4_CONFIG = 'control4_config'
 
-REQUIREMENTS = ['python-control4-lite===0.1.1']
+REQUIREMENTS = ['python-control4-lite===0.1.3']
 
 
 async def async_setup(hass, config):
