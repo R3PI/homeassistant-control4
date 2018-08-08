@@ -56,7 +56,7 @@ async def async_setup_platform(hass, config, async_add_devices, discovery_info=N
 
 async def async_setup_entry(hass, entry, async_add_devices):
     """Set up Control4 lights"""
-    _LOGGER.debug('control4.light.async_setup_entry: %s', str(entry))
+    _LOGGER.debug('async_setup_entry: %s', str(entry))
 
 
 class Control4Light(Light):
@@ -114,19 +114,20 @@ class Control4Light(Light):
 
     async def async_turn_on(self, **kwargs) -> None:
         """Turn the light on"""
-        _LOGGER.debug("control4.light.on: %s", self._name)
+        _LOGGER.debug("turn_on: %s", self._name)
+
+        await self._switch.on(self._c4id)
+        self._state = True
 
         brightness = kwargs.get(ATTR_BRIGHTNESS)
-        await self._switch.on(self._c4id)
-
-        self._state = True
 
         if brightness is not None:
             await self._switch.set_level(self._c4id, brightness)
+            self._brightness = brightness
 
     async def async_turn_off(self, **kwargs) -> None:
         """Turn the light off"""
-        _LOGGER.debug("control4.light.off: %s", self._name)
+        _LOGGER.debug("turn_off: %s", self._name)
 
         await self._switch.off(self._c4id)
 
@@ -134,7 +135,7 @@ class Control4Light(Light):
 
     async def async_update(self) -> None:
         """Synchronize internal state with the actual light state."""
-        _LOGGER.debug("control4.light.update: %s", self._name)
+        _LOGGER.debug("update: %s", self._name)
 
         if self._dimmable:
             self._brightness = int(float(await self._switch.get(self._c4id, self._c4var_brightness)) * 2.55)
