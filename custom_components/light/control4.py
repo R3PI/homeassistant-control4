@@ -78,61 +78,67 @@ class Control4Light(Light):
         self._state = False
         self._brightness = 0
 
+        self._assumedState = False
+        self._available = True
+
     @property
-    def unique_id(self):
+    def unique_id(self) -> str:
         """Return the ID of this light."""
         return self._name
 
     @property
-    def is_on(self):
+    def is_on(self) -> bool:
         """Return true if device is on."""
         return self._state
 
     @property
-    def brightness(self):
+    def brightness(self) -> int:
         """Return the brightness of this light between 0..255."""
         return self._brightness
 
     @property
-    def supported_features(self):
+    def supported_features(self) -> int:
         """Flag supported features."""
         if self._dimmable:
             return SUPPORT_BRIGHTNESS
         return 0
 
     @property
-    def assumed_state(self):
+    def assumed_state(self) -> bool:
         """We can read the actual state."""
-        return False
+        return self._assumedState
 
-    async def async_set_state(self, brightness):
-        """"Set the state of this light to the provided brightness."""
-        _LOGGER.debug("control4.light.set_level: %s, %d", self._name, brightness)
-        await self._switch.set_level(self._c4id, int(brightness / 2.55))
+    @property
+    def available(self) -> bool:
+        return self._available
 
-    async def async_turn_on(self, **kwargs):
+    async def async_turn_on(self, **kwargs) -> None:
         """Turn the light on"""
         _LOGGER.debug("control4.light.on: %s", self._name)
 
         brightness = kwargs.get(ATTR_BRIGHTNESS)
         await self._switch.on(self._c4id)
+
         self._state = True
 
         if brightness is not None:
             await self._switch.set_level(self._c4id, brightness)
 
-    async def async_turn_off(self, **kwargs):
+    async def async_turn_off(self, **kwargs) -> None:
         """Turn the light off"""
         _LOGGER.debug("control4.light.off: %s", self._name)
 
         await self._switch.off(self._c4id)
+
         self._state = False
 
-    async def async_update(self):
+    async def async_update(self) -> None:
         """Synchronize internal state with the actual light state."""
         _LOGGER.debug("control4.light.update: %s", self._name)
 
         if self._dimmable:
-            self._brightness = float(await self._switch.get(self._c4id, self._c4var_brightness)) * 2.55
+            self._brightness = int(float(await self._switch.get(self._c4id, self._c4var_brightness)) * 2.55)
 
         self._state = bool(await self._switch.get(self._c4id, self._c4var_status))
+
+        _LOGGER.debug("control4.light.status: %d, %d", self._state, self._brightness)
