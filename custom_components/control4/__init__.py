@@ -9,6 +9,7 @@ import logging
 import voluptuous as vol
 
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import DOMAIN
 
@@ -25,7 +26,7 @@ CONFIG_SCHEMA = vol.Schema({
 DATA_CONTROL4 = 'control4'
 DATA_CONTROL4_CONFIG = 'control4_config'
 
-REQUIREMENTS = ['python-control4-lite===0.1.8']
+REQUIREMENTS = ['python-control4-lite===0.1.9']
 
 
 async def async_setup(hass, config):
@@ -41,7 +42,7 @@ async def async_setup(hass, config):
     from control4 import Control4
 
     conf = config[DOMAIN]
-    control4 = Control4(url=conf['url'])
+    control4 = Control4(url=conf['url'], session=async_get_clientsession(hass))
     hass.data[DATA_CONTROL4_CONFIG] = conf
     hass.data[DATA_CONTROL4] = Control4Device(hass, conf, control4)
 
