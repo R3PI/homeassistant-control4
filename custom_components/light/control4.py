@@ -142,4 +142,4 @@ class Control4Light(Light):
 
         self._state = bool(await self._switch.get(self._c4id, self._c4var_status))
 
-        _LOGGER.debug("control4.light.status: %d, %d", self._state, self._brightness)
+        _LOGGER.debug("status: %s, %d, %d", self._name, self._state, self._brightness)
