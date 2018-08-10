@@ -119,11 +119,13 @@ class Control4Light(Light):
         await self._switch.on(self._c4id)
         self._state = True
 
-        brightness = kwargs.get(ATTR_BRIGHTNESS)
+        ha_brightness = kwargs.get(ATTR_BRIGHTNESS)
 
-        if brightness is not None:
-            await self._switch.set_level(self._c4id, brightness)
-            self._brightness = brightness
+        if ha_brightness is not None:
+            c4_brightness = int(ha_brightness / 2.55)
+            _LOGGER.debug('set brightness: %d, %d', c4_brightness, ha_brightness)
+            await self._switch.set_level(self._c4id, c4_brightness)
+            self._brightness = ha_brightness
 
     async def async_turn_off(self, **kwargs) -> None:
         """Turn the light off"""
@@ -138,8 +140,16 @@ class Control4Light(Light):
         _LOGGER.debug("update: %s", self._name)
 
         if self._dimmable is True:
-            self._brightness = int(float(await self._switch.get(self._c4id, self._c4var_brightness)) * 2.55)
+            c4_brightness = int(await self._switch.get(self._c4id, self._c4var_brightness))
+            ha_brightness = int(float(c4_brightness * 2.55))
+
+            _LOGGER.debug('get brightness: %f, %d', c4_brightness, ha_brightness)
+
+            self._brightness = ha_brightness
 
         self._state = bool(await self._switch.get(self._c4id, self._c4var_status))
+
+        if ha_brightness == 0:
+            self._state = False
 
         _LOGGER.debug("status: %s, %d, %d", self._name, self._state, self._brightness)
