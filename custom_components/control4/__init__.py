@@ -16,17 +16,19 @@ from .const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
 CONF_URL = 'url'
+CONF_PROXY = 'proxy'
 
 CONFIG_SCHEMA = vol.Schema({
     DOMAIN: vol.Schema({
-        vol.Required(CONF_URL): cv.url
+        vol.Required(CONF_URL): cv.url,
+        vol.Optional(CONF_PROXY, default=None): cv.url
     })
 }, extra=vol.ALLOW_EXTRA)
 
 DATA_CONTROL4 = 'control4'
 DATA_CONTROL4_CONFIG = 'control4_config'
 
-REQUIREMENTS = ['python-control4-lite===0.1.11']
+REQUIREMENTS = ['python-control4-lite===0.1.15']
 
 
 async def async_setup(hass, config):
@@ -42,7 +44,11 @@ async def async_setup(hass, config):
     from control4 import Control4
 
     conf = config[DOMAIN]
-    control4 = Control4(url=conf['url'], session=async_get_clientsession(hass))
+
+    # May need to avoid aviod 'session=async_get_clientsession(hass)' here,
+    # because Control4 seems to require force_close -- TBD
+    control4 = Control4(url=conf['url'], session=async_get_clientsession(hass), proxy=conf['proxy'])
+
     hass.data[DATA_CONTROL4_CONFIG] = conf
     hass.data[DATA_CONTROL4] = Control4Device(hass, conf, control4)
 

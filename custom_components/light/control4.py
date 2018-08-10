@@ -99,7 +99,7 @@ class Control4Light(Light):
     @property
     def supported_features(self) -> int:
         """Flag supported features."""
-        if self._dimmable:
+        if self._dimmable is True:
             return SUPPORT_BRIGHTNESS
         return 0
 
@@ -137,7 +137,7 @@ class Control4Light(Light):
         """Synchronize internal state with the actual light state."""
         _LOGGER.debug("update: %s", self._name)
 
-        if self._dimmable:
+        if self._dimmable is True:
             self._brightness = int(float(await self._switch.get(self._c4id, self._c4var_brightness)) * 2.55)
 
         self._state = bool(await self._switch.get(self._c4id, self._c4var_status))
