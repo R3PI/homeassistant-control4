@@ -139,6 +139,8 @@ class Control4Light(Light):
         """Synchronize internal state with the actual light state."""
         _LOGGER.debug("update: %s", self._name)
 
+        self._state = bool(int(await self._switch.get(self._c4id, self._c4var_status)))
+
         if self._dimmable is True:
             c4_brightness = int(await self._switch.get(self._c4id, self._c4var_brightness))
             ha_brightness = int(float(c4_brightness * 2.55))
@@ -147,9 +149,7 @@ class Control4Light(Light):
 
             self._brightness = ha_brightness
 
-        self._state = bool(await self._switch.get(self._c4id, self._c4var_status))
-
-        if ha_brightness == 0:
-            self._state = False
+            if ha_brightness == 0:
+                self._state = False
 
         _LOGGER.debug("status: %s, %d, %d", self._name, self._state, self._brightness)
