@@ -91,10 +91,13 @@ class Control4Fan(FanEntity):
 
         self._switch = switch
         self._state = False
-        self._fan_speed = 0
+        self._fan_speed = None
 
         self._assumed_state = False
         self._available = True
+
+        self.oscillating = None
+        self.direction = None
 
     @property
     def unique_id(self) -> str:
@@ -112,7 +115,10 @@ class Control4Fan(FanEntity):
 
     @property
     def speed_list(self):
-        return [SPEED_OFF, SPEED_LOW, SPEED_MEDIUM, SPEED_HIGH]
+        if self._type == 'fan':
+            return [SPEED_OFF, SPEED_LOW, SPEED_MEDIUM, SPEED_HIGH]
+
+        return []
 
     @property
     def supported_features(self) -> int:
@@ -164,6 +170,9 @@ class Control4Fan(FanEntity):
             await self._switch.set_level(self._c4id, c4_fan_speed)
             self._fan_speed = ha_fan_speed
 
+        if self._type == 'oscillator':
+            self.oscillating = True
+
     async def async_turn_off(self, **kwargs) -> None:
         """Turn the light off"""
         _LOGGER.debug("turn_off: %s", self._name)
@@ -171,6 +180,9 @@ class Control4Fan(FanEntity):
         await self._switch.off(self._c4id)
 
         self._state = False
+
+        if self._type == 'oscillator':
+            self.oscillating = False
 
     async def async_update(self) -> None:
         """Synchronize internal state with the actual device state."""
@@ -189,6 +201,9 @@ class Control4Fan(FanEntity):
             if ha_fan_speed == SPEED_OFF:
                 self._state = False
 
+        if self._type == 'oscillator':
+            self.oscillating = self._state
+
         _LOGGER.debug("status: %s, %d, %s", self._name, self._state, self._fan_speed)
 
     async def async_oscillate(self, oscillating: bool) -> None:
@@ -198,4 +213,6 @@ class Control4Fan(FanEntity):
             await self.async_turn_on()
         else:
             await self.async_turn_off()
+
+        self.oscillating = oscillating
 
