@@ -111,6 +111,10 @@ class Control4Fan(FanEntity):
         return self._fan_speed
 
     @property
+    def speed_list(self):
+        return [SPEED_OFF, SPEED_LOW, SPEED_MEDIUM, SPEED_HIGH]
+
+    @property
     def supported_features(self) -> int:
         if self._type == 'oscillator':
             return SUPPORT_OSCILLATE
