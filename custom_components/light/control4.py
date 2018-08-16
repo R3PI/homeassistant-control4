@@ -78,7 +78,7 @@ class Control4Light(Light):
         self._state = False
         self._brightness = 0
 
-        self._assumedState = False
+        self._assumed_state = False
         self._available = True
 
     @property
@@ -106,7 +106,7 @@ class Control4Light(Light):
     @property
     def assumed_state(self) -> bool:
         """We can read the actual state."""
-        return self._assumedState
+        return self._assumed_state
 
     @property
     def available(self) -> bool:

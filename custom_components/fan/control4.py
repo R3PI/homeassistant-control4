@@ -1,7 +1,7 @@
 """
 Support for Control4 Fans and Oscillators.
 For more details about this platform, please refer to the documentation at
-https://github.com/r3pi/homeassistant-control4/custom_components/climate/
+https://github.com/r3pi/homeassistant-control4/custom_components/fan/
 """
 import logging
 import voluptuous as vol
@@ -10,10 +10,11 @@ from homeassistant.const import (
     CONF_LATITUDE, CONF_LONGITUDE, CONF_DEVICES, CONF_SCAN_INTERVAL
 )
 
-from homeassistant.components.climate import (
-    ATTR_FAN_MODE, ATTR_FAN_LIST, ATTR_SWING_LIST, ATTR_SWING_MODE,
-    SUPPORT_FAN_MODE, SUPPORT_ON_OFF, SUPPORT_SWING_MODE,
-    ClimateDevice, PLATFORM_SCHEMA
+from homeassistant.components.fan import (
+    ATTR_SPEED, ATTR_OSCILLATING,
+    SUPPORT_SET_SPEED, SUPPORT_OSCILLATE,
+    SPEED_OFF, SPEED_LOW, SPEED_MEDIUM, SPEED_HIGH,
+    FanEntity, PLATFORM_SCHEMA
 )
 
 from homeassistant.helpers import config_validation as cv
@@ -49,26 +50,35 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
 
 
 async def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
-    """Set up Control4 lights"""
+    """Set up Control4 fans"""
     _LOGGER.debug('async_setup_platform: %s, %s', str(config), str(discovery_info))
 
     switch = hass.data[DATA_CONTROL4].control4
-    devices = [Control4ClimateDevice(device_name, device, switch) for device_name, device in config[CONF_DEVICES].items()]
+    devices = [Control4Fan(device_name, device, switch) for device_name, device in config[CONF_DEVICES].items()]
 
     async_add_devices(devices, True)
 
 
 async def async_setup_entry(hass, entry, async_add_devices):
-    """Set up Control4 lights"""
+    """Set up Control4 fans"""
     _LOGGER.debug('async_setup_entry: %s', str(entry))
 
 
-class Control4ClimateDevice(ClimateDevice):
-    """Representation of a Control4 Climate Device"""
+FAN_SPEEDS = {
+    SPEED_OFF: 0,
+    SPEED_LOW: 50,
+    SPEED_MEDIUM: 120,
+    SPEED_HIGH: 255
+}
+
+
+
+class Control4Fan(FanEntity):
+    """Representation of a Control4 Fan"""
 
     def __init__(self, device_name, device, switch):
         """Initialize the light"""
-        _LOGGER.debug('Init climate device: %s', str(device))
+        _LOGGER.debug('Init fan: %s', str(device))
         self._name = device_name
         self._c4id = device['c4id']
         self._desc = device['desc']
@@ -83,60 +93,70 @@ class Control4ClimateDevice(ClimateDevice):
         self._state = False
         self._fan_speed = 0
 
-        self._assumedState = False
+        self._assumed_state = False
         self._available = True
 
     @property
     def unique_id(self) -> str:
-        """Return the ID of this climate device."""
+        """Return the ID of this fan."""
         return self._name
 
     @property
     def is_on(self) -> bool:
-        """Return true if device is on."""
+        """Return true if fan is on."""
         return self._state
 
     @property
-    def current_fan_mode(self):
+    def speed(self):
         return self._fan_speed
-
-    @property
-    def fan_list(self):
-
-    @property
-    def swing_list(self):
 
     @property
     def supported_features(self) -> int:
         if self._type == 'oscillator':
-            return SUPPORT_SWING_MODE
+            return SUPPORT_OSCILLATE
 
         if self._dimmable is True:
-            return SUPPORT_FAN_MODE
+            return SUPPORT_SET_SPEED
 
-        return SUPPORT_ON_OFF
+        return 0
 
     @property
     def assumed_state(self) -> bool:
         """We can read the actual state."""
-        return self._assumedState
+        return self._assumed_state
 
     @property
     def available(self) -> bool:
         return self._available
 
+    def c4_to_ha_speed(self, c4_speed):
+        target_speed = SPEED_OFF
+        speed_difference = 100000
+
+        for attr, value in FAN_SPEEDS.items():
+            diff = abs(c4_speed - value)
+
+            if diff < speed_difference:
+                speed_difference = diff
+                target_speed = attr
+
+        return target_speed
+
+    def ha_to_c4_speed(self, ha_speed):
+        return FAN_SPEEDS[ha_speed]
+
     async def async_turn_on(self, **kwargs) -> None:
-        """Turn the climate control device on"""
+        """Turn the fan control device on"""
         _LOGGER.debug("turn_on: %s", self._name)
 
         await self._switch.on(self._c4id)
         self._state = True
 
-        ha_fan_speed = kwargs.get(ATTR_FAN_MODE)
+        ha_fan_speed = kwargs.get(ATTR_SPEED)
 
         if ha_fan_speed is not None:
-            c4_fan_speed = int(ha_fan_speed / 2.55)
-            _LOGGER.debug('set fan speed: %d, %d', c4_fan_speed, ha_fan_speed)
+            c4_fan_speed = self.ha_to_c4_speed(ha_fan_speed)
+            _LOGGER.debug('set fan speed: %d, %s', c4_fan_speed, ha_fan_speed)
             await self._switch.set_level(self._c4id, c4_fan_speed)
             self._fan_speed = ha_fan_speed
 
@@ -156,13 +176,22 @@ class Control4ClimateDevice(ClimateDevice):
 
         if self._dimmable is True:
             c4_fan_speed = int(await self._switch.get(self._c4id, self._c4var_fan_speed))
-            ha_fan_speed = int(float(c4_fan_speed * 2.55))
+            ha_fan_speed = self.c4_to_ha_speed(c4_fan_speed)
 
-            _LOGGER.debug('get fan speed: %f, %d', c4_fan_speed, ha_fan_speed)
+            _LOGGER.debug('get fan speed: %f, %s', c4_fan_speed, ha_fan_speed)
 
             self._fan_speed = ha_fan_speed
 
-            if ha_fan_speed == 0:
+            if ha_fan_speed == SPEED_OFF:
                 self._state = False
 
-        _LOGGER.debug("status: %s, %d, %d", self._name, self._state, self._fan_speed)
+        _LOGGER.debug("status: %s, %d, %s", self._name, self._state, self._fan_speed)
+
+    async def async_oscillate(self, oscillating: bool) -> None:
+        _LOGGER.debug("oscillate: ", self._name)
+
+        if oscillating:
+            await self.async_turn_on()
+        else:
+            await self.async_turn_off()
+
